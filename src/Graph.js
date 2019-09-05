@@ -1,19 +1,37 @@
+const concatDistinct = require('./utils/concatDistinct');
+
 const DefaultEdgeOptions = {
-  direction: 0,
+  directed: false,
   weight: 1,
 };
 
 const privateData = new WeakMap();
 
-function createEdge(v1, v2, weight) {
+function $createEdge(v1, v2, weight) {
   const { E } = privateData.get(this);
   const edges = E.get(v1) || new Map();
   E.set(v1, edges.set(v2, weight));
 }
 
-function vertexExists(...vertexes) {
+function $vertexExists(...vertexes) {
   const { V } = privateData.get(this);
   return vertexes.every((v) => V.has(v));
+}
+
+function $getVertexEdges(vertex) {
+  const { E } = privateData.get(this);
+  const vertexEdges = E.get(vertex);
+  if (!vertexEdges) {
+    return [];
+  }
+  return Array.from(vertexEdges.entries()).reduce((edgesInfo, [neighbour, weight]) => {
+    const neighbourEdges = E.get(neighbour);
+    return edgesInfo.concat({
+      directed: !neighbourEdges || !neighbourEdges.has(vertex),
+      weight,
+      vertexes: new Set([vertex, neighbour]),
+    });
+  }, []);
 }
 
 class Graph {
@@ -25,29 +43,19 @@ class Graph {
     privateData.set(this, {
       V: new Set(),
       E: new Map(),
+      createEdge: $createEdge.bind(this),
+      vertexExists: $vertexExists.bind(this),
+      getVertexEdges: $getVertexEdges.bind(this),
     });
   }
 
   get edges() {
-    const { E } = privateData.get(this);
-    return Array.from(E.entries()).reduce(
-      (all, [v1, m]) => all.concat(
-        Array.from(m.entries()).reduce((vertexEdges, [v2, weight]) => {
-          if (
-            all.find(
-              (edgeInfo) => edgeInfo.vertexes.has(v1) && edgeInfo.vertexes.has(v2),
-            )
-          ) {
-            return vertexEdges;
-          }
-          const v2Edges = E.get(v2);
-          return vertexEdges.concat({
-            directed: !v2Edges || !v2Edges.has(v1),
-            weight,
-            vertexes: new Set([v1, v2]),
-          });
-        }, []),
-      ),
+    const { getVertexEdges } = privateData.get(this);
+    return this.vertexes.reduce(
+      (all, vertex) =>
+        concatDistinct(all, getVertexEdges(vertex), (val1, val2) =>
+          all.some((v) => Array.from(val2.vertexes.values()).every((v2) => v.vertexes.has(v2))),
+        ),
       [],
     );
   }
@@ -64,15 +72,14 @@ class Graph {
   }
 
   addEdge(v1, v2, options = DefaultEdgeOptions) {
-    const { direction, weight } = options;
-    if (!vertexExists.call(this, v1, v2)) {
+    const { vertexExists, createEdge } = privateData.get(this);
+    const { directed, weight } = options;
+    if (!vertexExists(v1, v2)) {
       throw new Error('vertex does not exists');
     }
-    if (direction >= 0) {
-      createEdge.call(this, v1, v2, weight);
-    }
-    if (direction <= 0) {
-      createEdge.call(this, v2, v1, weight);
+    createEdge(v1, v2, weight);
+    if (!directed) {
+      createEdge(v2, v1, weight);
     }
     return this;
   }

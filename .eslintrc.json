@@ -13,5 +13,8 @@
     "ecmaVersion": 2018
   },
   "plugins": ["jest"],
-  "rules": {}
+  "rules": {
+    "implicit-arrow-linebreak": "off",
+    "function-paren-newline": "off"
+  }
 }

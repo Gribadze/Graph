@@ -48,7 +48,7 @@ describe('Graph tests', () => {
     const graph = Graph.create()
       .addVertex(1)
       .addVertex(2)
-      .addEdge(1, 2, { direction: 1, weight: 2 });
+      .addEdge(1, 2, { directed: true, weight: 2 });
     expect(graph.edges[0]).toHaveProperty('weight', 2);
     expect(graph.edges[0]).toHaveProperty('directed', true);
   });
