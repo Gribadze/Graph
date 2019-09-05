@@ -34,6 +34,13 @@ function $getVertexEdges(vertex) {
   }, []);
 }
 
+function $concatEdgeInfos(all, vertex) {
+  const { getVertexEdges } = privateData.get(this);
+  return concatDistinct(all, getVertexEdges(vertex), (val1, val2) =>
+    all.some((v) => Array.from(val2.vertexes.values()).every((v2) => v.vertexes.has(v2))),
+  );
+}
+
 class Graph {
   static create() {
     return new Graph();
@@ -46,18 +53,13 @@ class Graph {
       createEdge: $createEdge.bind(this),
       vertexExists: $vertexExists.bind(this),
       getVertexEdges: $getVertexEdges.bind(this),
+      concatEdgeInfos: $concatEdgeInfos.bind(this),
     });
   }
 
   get edges() {
-    const { getVertexEdges } = privateData.get(this);
-    return this.vertexes.reduce(
-      (all, vertex) =>
-        concatDistinct(all, getVertexEdges(vertex), (val1, val2) =>
-          all.some((v) => Array.from(val2.vertexes.values()).every((v2) => v.vertexes.has(v2))),
-        ),
-      [],
-    );
+    const { concatEdgeInfos } = privateData.get(this);
+    return this.vertexes.reduce(concatEdgeInfos, []);
   }
 
   get vertexes() {
