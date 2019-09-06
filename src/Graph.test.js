@@ -4,6 +4,12 @@ describe('Graph tests', () => {
   it('Graph.create() should return new instance', () => {
     expect(Graph.create()).toBeInstanceOf(Graph);
   });
+  it('Graph.create() should add vertexes from iterable object', () => {
+    const graph1 = Graph.create([1]);
+    const graph2 = Graph.create(new Set([2]).values());
+    expect(graph1.vertexes).toContain(1);
+    expect(graph2.vertexes).toContain(2);
+  });
   it('get vertexes() should return array of vertexes', () => {
     const graph = Graph.create();
     expect(graph.vertexes).toHaveLength(0);
@@ -84,5 +90,12 @@ describe('Graph tests', () => {
       .removeVertex(1);
     expect(graph.vertexes).toHaveLength(1);
     expect(graph.vertexes[0]).toBe(2);
+  });
+  it('getComponent() should return vertexes of graph component', () => {
+    const graph = Graph.create([1, 2, 3, 4])
+      .addEdge(1, 2)
+      .addEdge(1, 3);
+    const component = graph.getComponent(3);
+    expect(component).toHaveLength(3);
   });
 });

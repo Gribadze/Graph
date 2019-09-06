@@ -41,19 +41,32 @@ function $concatEdgeInfos(all, vertex) {
   );
 }
 
+function $genericSearch(vertex, callback, marked = []) {
+  const { getVertexEdges } = privateData.get(this);
+  getVertexEdges(vertex).forEach((edgeInfo) => {
+    const [neighbour] = Array.from(edgeInfo.vertexes.values()).filter((v) => !marked.includes(v));
+    if (neighbour) {
+      marked.push(neighbour);
+      callback(neighbour);
+      $genericSearch.call(this, neighbour, callback, marked);
+    }
+  });
+}
+
 class Graph {
-  static create() {
-    return new Graph();
+  static create(from) {
+    return new Graph(from);
   }
 
-  constructor() {
+  constructor(from) {
     privateData.set(this, {
-      V: new Set(),
+      V: new Set(from),
       E: new Map(),
       createEdge: $createEdge.bind(this),
       vertexExists: $vertexExists.bind(this),
       getVertexEdges: $getVertexEdges.bind(this),
       concatEdgeInfos: $concatEdgeInfos.bind(this),
+      genericSearch: $genericSearch.bind(this),
     });
   }
 
@@ -103,6 +116,13 @@ class Graph {
       }
     }
     return this;
+  }
+
+  getComponent(vertex) {
+    const { genericSearch } = privateData.get(this);
+    const vertexes = [];
+    genericSearch(vertex, (reachableVertex) => vertexes.push(reachableVertex));
+    return vertexes;
   }
 }
 
