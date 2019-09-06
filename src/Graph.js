@@ -1,4 +1,4 @@
-const { algorithms } = require('./utils');
+const concatDistinct = require('./utils/concatDistinct');
 
 const DefaultEdgeOptions = {
   directed: false,
@@ -36,7 +36,7 @@ function $getVertexEdges(vertex) {
 
 function $concatEdgeInfos(all, vertex) {
   const { getVertexEdges } = privateData.get(this);
-  return algorithms.concatDistinct(all, getVertexEdges(vertex), (val1, val2) =>
+  return concatDistinct(all, getVertexEdges(vertex), (val1, val2) =>
     all.some((v) => Array.from(val2.vertexes.values()).every((v2) => v.vertexes.has(v2))),
   );
 }
