@@ -52,4 +52,37 @@ describe('Graph tests', () => {
     expect(graph.edges[0]).toHaveProperty('weight', 2);
     expect(graph.edges[0]).toHaveProperty('directed', true);
   });
+  it('addEdge() should throw Error with absent vertexes', () => {
+    const fn = () => Graph.create().addEdge(1, 2);
+    expect(fn).toThrow();
+  });
+  it('removeEdge() test', () => {
+    const graph = Graph.create()
+      .addVertex(1)
+      .addVertex(2)
+      .addEdge(1, 2)
+      .removeEdge(1, 2);
+    expect(graph.edges).toHaveLength(0);
+    graph.addEdge(1, 2);
+    expect(graph.removeEdge(2, 1)).toBe(graph);
+    expect(graph.edges).toHaveLength(0);
+  });
+  it('removeEdge() directed test', () => {
+    const graph = Graph.create()
+      .addVertex(1)
+      .addVertex(2)
+      .addEdge(1, 2, { directed: true })
+      .removeEdge(2, 1);
+    expect(graph.edges).toHaveLength(1);
+    graph.removeEdge(1, 2);
+    expect(graph.edges).toHaveLength(0);
+  });
+  it('removeVertex() test', () => {
+    const graph = Graph.create()
+      .addVertex(1)
+      .addVertex(2)
+      .removeVertex(1);
+    expect(graph.vertexes).toHaveLength(1);
+    expect(graph.vertexes[0]).toBe(2);
+  });
 });

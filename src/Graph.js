@@ -73,6 +73,12 @@ class Graph {
     return this;
   }
 
+  removeVertex(value) {
+    const { V } = privateData.get(this);
+    V.delete(value);
+    return this;
+  }
+
   addEdge(v1, v2, options = DefaultEdgeOptions) {
     const { vertexExists, createEdge } = privateData.get(this);
     const { directed, weight } = options;
@@ -82,6 +88,19 @@ class Graph {
     createEdge(v1, v2, weight);
     if (!directed) {
       createEdge(v2, v1, weight);
+    }
+    return this;
+  }
+
+  removeEdge(v1, v2) {
+    const { E } = privateData.get(this);
+    const v1Edges = E.get(v1);
+    const v2Edges = E.get(v2);
+    if (v1Edges && v1Edges.has(v2)) {
+      v1Edges.delete(v2);
+      if (v2Edges && v2Edges.has(v1)) {
+        v2Edges.delete(v1);
+      }
     }
     return this;
   }
