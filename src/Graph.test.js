@@ -98,8 +98,12 @@ describe('Graph tests', () => {
     const component = graph.getComponent(3);
     expect(component).toHaveLength(3);
   });
-  it('BFS() test', () => {
+  it('BFS() should iterate reachable vertexes and stop if callback returns true', () => {
     const mockCallback = jest.fn();
+    const mockCallbackWithReturn = jest
+      .fn()
+      .mockReturnValueOnce(undefined)
+      .mockReturnValue(true);
     const graph = Graph.create([1, 2, 3, 4])
       .addEdge(1, 2)
       .addEdge(1, 3);
@@ -108,5 +112,7 @@ describe('Graph tests', () => {
     expect(mockCallback).toHaveBeenNthCalledWith(1, 1);
     expect(mockCallback).toHaveBeenNthCalledWith(2, 2);
     expect(mockCallback).toHaveBeenNthCalledWith(3, 3);
+    graph.BFS(1, mockCallbackWithReturn);
+    expect(mockCallbackWithReturn).toHaveBeenCalledTimes(2);
   });
 });

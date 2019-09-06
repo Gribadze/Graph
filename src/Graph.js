@@ -67,7 +67,9 @@ function $BFS(vertex, callback) {
         vertexQueue.enqueue(neighbour);
       }
     });
-    callback(currentVertex);
+    if (callback(currentVertex)) {
+      break;
+    }
   }
 }
 
