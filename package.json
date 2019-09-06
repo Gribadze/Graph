@@ -6,11 +6,12 @@
     "coverage": "jest --coverage",
     "start": "node src",
     "lint": "eslint ./src --fix",
-    "prettier": "prettier ./src/**/*.* --write"
+    "prettier": "prettier ./src/**/*.* --write",
+    "precommit": "lint-staged && npm run test"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged"
+      "pre-commit": "npm run precommit"
     }
   },
   "lint-staged": {
