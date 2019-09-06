@@ -98,4 +98,15 @@ describe('Graph tests', () => {
     const component = graph.getComponent(3);
     expect(component).toHaveLength(3);
   });
+  it('BFS() test', () => {
+    const mockCallback = jest.fn();
+    const graph = Graph.create([1, 2, 3, 4])
+      .addEdge(1, 2)
+      .addEdge(1, 3);
+    graph.BFS(1, mockCallback);
+    expect(mockCallback).toHaveBeenCalledTimes(3);
+    expect(mockCallback).toHaveBeenNthCalledWith(1, 1);
+    expect(mockCallback).toHaveBeenNthCalledWith(2, 2);
+    expect(mockCallback).toHaveBeenNthCalledWith(3, 3);
+  });
 });

@@ -1,4 +1,5 @@
 const concatDistinct = require('./utils/concatDistinct');
+const Queue = require('./Queue');
 
 const DefaultEdgeOptions = {
   directed: false,
@@ -53,6 +54,23 @@ function $genericSearch(vertex, callback, marked = []) {
   });
 }
 
+function $BFS(vertex, callback) {
+  const { getVertexEdges } = privateData.get(this);
+  const marked = [vertex];
+  const vertexQueue = Queue.create([vertex]);
+  while (vertexQueue.size > 0) {
+    const currentVertex = vertexQueue.dequeue();
+    getVertexEdges(currentVertex).forEach(({ vertexes }) => {
+      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentVertex);
+      if (!marked.includes(neighbour)) {
+        marked.push(neighbour);
+        vertexQueue.enqueue(neighbour);
+      }
+    });
+    callback(currentVertex);
+  }
+}
+
 class Graph {
   static create(from) {
     return new Graph(from);
@@ -67,6 +85,7 @@ class Graph {
       getVertexEdges: $getVertexEdges.bind(this),
       concatEdgeInfos: $concatEdgeInfos.bind(this),
       genericSearch: $genericSearch.bind(this),
+      BFS: $BFS.bind(this),
     });
   }
 
@@ -123,6 +142,11 @@ class Graph {
     const vertexes = [];
     genericSearch(vertex, (reachableVertex) => vertexes.push(reachableVertex));
     return vertexes;
+  }
+
+  BFS(vertex, callback) {
+    const { BFS } = privateData.get(this);
+    BFS(vertex, callback);
   }
 }
 
