@@ -110,8 +110,16 @@ class Graph {
   }
 
   removeVertex(value) {
-    const { V } = privateData.get(this);
+    const { V, E, getVertexEdges } = privateData.get(this);
+    getVertexEdges(value).forEach(({ vertexes }) => {
+      vertexes.forEach((v) => {
+        if (v !== value) {
+          E.get(v).delete(value);
+        }
+      });
+    });
     V.delete(value);
+    E.delete(value);
     return this;
   }
 

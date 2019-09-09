@@ -91,6 +91,11 @@ describe('Graph tests', () => {
     expect(graph.vertexes).toHaveLength(1);
     expect(graph.vertexes[0]).toBe(2);
   });
+  it('removeVertex() should decrease edges', () => {
+    const graph = Graph.create([1, 2, 3, 4]).addEdge(1, 2);
+    graph.removeVertex(1);
+    expect(graph.edges).toHaveLength(0);
+  });
   it('getComponent() should return vertexes of graph component', () => {
     const graph = Graph.create([1, 2, 3, 4])
       .addEdge(1, 2)
