@@ -1,11 +1,43 @@
+// eslint-disable-next-line max-classes-per-file
 const concatDistinct = require('./utils/concatDistinct');
 const GraphNode = require('./GraphNode');
 const ObjectSet = require('./ObjectSet');
 const Queue = require('./Queue');
+const Stack = require('./Stack');
 
 const DefaultEdgeOptions = {
   directed: false,
   weight: 1,
+};
+
+const SearchAlgorithm = {
+  BFS: {
+    Container: {
+      type: Queue,
+      prototype: {
+        add: Queue.prototype.enqueue,
+        remove: Queue.prototype.dequeue,
+      },
+    },
+    toString() {
+      return 'BFS';
+    },
+  },
+  DFS: {
+    Container: Object.assign(() => {}, {
+      create: Stack.create,
+      prototype: Object.create({
+        add: Stack.prototype.push,
+        remove: Stack.prototype.pop,
+        isEmpty() {
+          return this.size === 0;
+        },
+      }),
+    }),
+    toString() {
+      return 'DFS';
+    },
+  },
 };
 
 const privateData = new WeakMap();
@@ -29,7 +61,6 @@ function $getVertexEdges(node) {
   }
   return Array.from(vertexEdges.entries()).reduce((edgesInfo, [neighbourNode, weight]) => {
     const neighbourEdges = E.get(neighbourNode);
-    // noinspection JSCheckFunctionSignatures
     return edgesInfo.concat({
       directed: !neighbourEdges || !neighbourEdges.has(node),
       weight,
@@ -45,17 +76,59 @@ function $concatEdgeInfos(all, node) {
   );
 }
 
-function $genericSearch(value, callback, marked = []) {
-  const { V, getVertexEdges } = privateData.get(this);
-  const node = V.get(GraphNode.create(value));
-  getVertexEdges(node).forEach((edgeInfo) => {
-    const [neighbour] = Array.from(edgeInfo.vertexes.values()).filter((v) => !marked.includes(v));
-    if (neighbour) {
-      marked.push(neighbour);
-      callback(neighbour);
-      $genericSearch.call(this, neighbour, callback, marked);
+function $getAlgorithmContainer(searchAlgorithmName) {
+  const { Container } = SearchAlgorithm[searchAlgorithmName];
+  if (!Container) {
+    throw new Error(`${searchAlgorithmName} have no Container description`);
+  }
+  return class ContainerType extends Container.type {
+    static create(...args) {
+      return new ContainerType(...args);
     }
-  });
+
+    // eslint-disable-next-line no-useless-constructor
+    constructor(...args) {
+      super(...args);
+    }
+
+    add(...args) {
+      return Container.prototype.add.apply(this, args);
+    }
+
+    remove(...args) {
+      return Container.prototype.remove.apply(this, args);
+    }
+
+    isEmpty() {
+      return this.size === 0;
+    }
+  };
+}
+
+// eslint-disable-next-line no-unused-vars
+function $genericSearch(searchAlgorithmName) {
+  return function genericSearch(value, callback) {
+    const { V, getVertexEdges } = privateData.get(this);
+    const node = V.get(GraphNode.create(value));
+    const marked = new ObjectSet([node]);
+    const Container = $getAlgorithmContainer(searchAlgorithmName);
+    const nodeContainer = Container.create(marked);
+    while (!nodeContainer.isEmpty()) {
+      const currentNode = nodeContainer.remove();
+      getVertexEdges(currentNode).forEach((edgeInfo) => {
+        const [neighbour] = Array.from(edgeInfo.vertexes.values())
+          .filter((v) => v !== currentNode.value);
+        const neighbourNode = V.get(GraphNode.create(neighbour));
+        if (!marked.has(neighbourNode)) {
+          marked.add(neighbourNode);
+          nodeContainer.add(neighbourNode);
+        }
+      });
+      if (callback(currentNode.value)) {
+        break;
+      }
+    }
+  };
 }
 
 function $BFS(value, callback) {
@@ -81,6 +154,25 @@ function $BFS(value, callback) {
   }
 }
 
+function $DFS(vertex, callback) {
+  const { getVertexEdges } = privateData.get(this);
+  const marked = new Set([vertex]);
+  const vertexStack = Stack.create(marked);
+  while (vertexStack.size > 0) {
+    const currentVertex = vertexStack.pop();
+    getVertexEdges(currentVertex).forEach(({ vertexes }) => {
+      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentVertex);
+      if (!marked.has(neighbour)) {
+        marked.add(neighbour);
+        vertexStack.push(neighbour);
+      }
+    });
+    if (callback(currentVertex)) {
+      break;
+    }
+  }
+}
+
 class Graph {
   static create(from) {
     return new Graph(from);
@@ -99,8 +191,8 @@ class Graph {
       vertexExists: $vertexExists.bind(this),
       getVertexEdges: $getVertexEdges.bind(this),
       concatEdgeInfos: $concatEdgeInfos.bind(this),
-      genericSearch: $genericSearch.bind(this),
       BFS: $BFS.bind(this),
+      DFS: $DFS.bind(this),
     });
   }
 
@@ -167,15 +259,32 @@ class Graph {
   }
 
   getComponent(vertex) {
-    const { genericSearch } = privateData.get(this);
+    const { BFS } = privateData.get(this);
     const vertexes = [];
-    genericSearch(vertex, (reachableVertex) => vertexes.push(reachableVertex));
+    BFS(vertex, (reachableVertex) => {
+      vertexes.push(reachableVertex);
+    });
     return vertexes;
   }
 
   BFS(value, callback) {
     const { BFS } = privateData.get(this);
     BFS(value, callback);
+  }
+
+  UCC() {
+    const marked = new Set();
+    return this.vertexes.reduce((components, vertex) => {
+      if (marked.has(vertex)) {
+        return components;
+      }
+      const componentVertexes = new Set();
+      this.BFS(vertex, (current) => {
+        marked.add(current);
+        componentVertexes.add(current);
+      });
+      return components.concat(componentVertexes);
+    }, []);
   }
 }
 

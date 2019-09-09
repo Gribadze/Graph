@@ -131,4 +131,13 @@ describe('Graph tests', () => {
     expect(mockCallback).toHaveBeenNthCalledWith(3, 4, 1);
     expect(mockCallback).toHaveBeenNthCalledWith(4, 3, 2);
   });
+  it('UCC() should return array of graph components', () => {
+    const graph = Graph.create([1, 2, 3, 4]);
+    expect(graph.UCC()).toHaveLength(4);
+    graph.addEdge(1, 2);
+    const components = graph.UCC();
+    expect(components).toHaveLength(3);
+    expect(components[0]).toContain(1);
+    expect(components[0]).toContain(2);
+  });
 });
