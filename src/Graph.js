@@ -1,4 +1,5 @@
 const concatDistinct = require('./utils/concatDistinct');
+const ObjectSet = require('./ObjectSet');
 const Queue = require('./Queue');
 
 const DefaultEdgeOptions = {
@@ -82,7 +83,7 @@ class Graph {
 
   constructor(from) {
     privateData.set(this, {
-      V: new Set(from),
+      V: new ObjectSet(from),
       E: new Map(),
       createEdge: $createEdge.bind(this),
       vertexExists: $vertexExists.bind(this),
