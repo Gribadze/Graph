@@ -57,6 +57,7 @@ function $genericSearch(vertex, callback, marked = []) {
 function $BFS(vertex, callback) {
   const { getVertexEdges } = privateData.get(this);
   const marked = [vertex];
+  const dist = new Map([[vertex, 0]]);
   const vertexQueue = Queue.create([vertex]);
   while (vertexQueue.size > 0) {
     const currentVertex = vertexQueue.dequeue();
@@ -64,10 +65,11 @@ function $BFS(vertex, callback) {
       const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentVertex);
       if (!marked.includes(neighbour)) {
         marked.push(neighbour);
+        dist.set(neighbour, dist.get(currentVertex) + 1);
         vertexQueue.enqueue(neighbour);
       }
     });
-    if (callback(currentVertex)) {
+    if (callback(currentVertex, dist.get(currentVertex))) {
       break;
     }
   }

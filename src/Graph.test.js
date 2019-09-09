@@ -109,10 +109,19 @@ describe('Graph tests', () => {
       .addEdge(1, 3);
     graph.BFS(1, mockCallback);
     expect(mockCallback).toHaveBeenCalledTimes(3);
-    expect(mockCallback).toHaveBeenNthCalledWith(1, 1);
-    expect(mockCallback).toHaveBeenNthCalledWith(2, 2);
-    expect(mockCallback).toHaveBeenNthCalledWith(3, 3);
     graph.BFS(1, mockCallbackWithReturn);
     expect(mockCallbackWithReturn).toHaveBeenCalledTimes(2);
+  });
+  it('BFS() callback should been called with vertex and layer index', () => {
+    const mockCallback = jest.fn();
+    const graph = Graph.create([1, 2, 3, 4])
+      .addEdge(1, 2)
+      .addEdge(2, 3)
+      .addEdge(1, 4);
+    graph.BFS(1, mockCallback);
+    expect(mockCallback).toHaveBeenNthCalledWith(1, 1, 0);
+    expect(mockCallback).toHaveBeenNthCalledWith(2, 2, 1);
+    expect(mockCallback).toHaveBeenNthCalledWith(3, 4, 1);
+    expect(mockCallback).toHaveBeenNthCalledWith(4, 3, 2);
   });
 });
