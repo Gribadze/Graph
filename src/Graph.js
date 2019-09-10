@@ -6,6 +6,7 @@ const Stack = require('./Stack');
 
 const privateData = new WeakMap();
 
+// private methods<<<
 function $createEdge(fromNode, toNode, weight) {
   const { E } = privateData.get(this);
   const edges = E.get(fromNode) || new Map();
@@ -68,6 +69,7 @@ function $applyOptions(options) {
   Options.directed = options.directed;
   Options.weight = options.weight;
 }
+// >>>private methods
 
 class Graph {
   static create(from) {
