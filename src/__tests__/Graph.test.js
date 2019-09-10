@@ -164,4 +164,18 @@ describe('Graph tests', () => {
     expect(components[0]).toContain(1);
     expect(components[0]).toContain(2);
   });
+  it('Graph.configure should return graph builder', () => {
+    expect(Graph.configure()).toHaveProperty('build');
+    const graph1 = Graph.configure({ directed: true }).build();
+    const graph2 = Graph.configure({ directed: true }).build([1]);
+    expect(graph1.vertexes).toHaveLength(0);
+    expect(graph2.vertexes).toHaveLength(1);
+  });
+  it('Should configure graph', () => {
+    const graph = Graph.configure({ directed: true, weight: 2 })
+      .build([1, 2])
+      .addEdge(1, 2);
+    expect(graph.edges[0]).toHaveProperty('directed', true);
+    expect(graph.edges[0]).toHaveProperty('weight', 2);
+  });
 });

@@ -4,11 +4,6 @@ const ObjectSet = require('./ObjectSet');
 const Queue = require('./Queue');
 const Stack = require('./Stack');
 
-const DefaultEdgeOptions = {
-  directed: false,
-  weight: 1,
-};
-
 const privateData = new WeakMap();
 
 function $createEdge(fromNode, toNode, weight) {
@@ -68,9 +63,25 @@ function $genericSearch({ nodeContainer, getNextNode, addNode }) {
   };
 }
 
+function $applyOptions(options) {
+  const { Options } = privateData.get(this);
+  Options.directed = options.directed;
+  Options.weight = options.weight;
+}
+
 class Graph {
   static create(from) {
     return new Graph(from);
+  }
+
+  static configure(options) {
+    return {
+      build: (from) => {
+        const graph = Graph.create(from);
+        $applyOptions.call(graph, options);
+        return graph;
+      },
+    };
   }
 
   constructor(from) {
@@ -81,6 +92,10 @@ class Graph {
     privateData.set(this, {
       V: new ObjectSet(initialNodes.map((value) => GraphNode.create(value))),
       E: new WeakMap(),
+      Options: {
+        directed: false,
+        weight: 1,
+      },
     });
   }
 
@@ -116,9 +131,9 @@ class Graph {
     return this;
   }
 
-  addEdge(v1, v2, options = DefaultEdgeOptions) {
-    const { V } = privateData.get(this);
-    const { directed, weight } = options;
+  addEdge(v1, v2, options) {
+    const { V, Options } = privateData.get(this);
+    const { directed, weight } = options || Options;
     if (!$vertexExists.call(this, v1, v2)) {
       throw new Error('vertex does not exists');
     }
