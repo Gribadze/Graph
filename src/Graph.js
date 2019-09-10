@@ -116,8 +116,9 @@ function $genericSearch(searchAlgorithmName) {
     while (!nodeContainer.isEmpty()) {
       const currentNode = nodeContainer.remove();
       getVertexEdges(currentNode).forEach((edgeInfo) => {
-        const [neighbour] = Array.from(edgeInfo.vertexes.values())
-          .filter((v) => v !== currentNode.value);
+        const [neighbour] = Array.from(edgeInfo.vertexes.values()).filter(
+          (v) => v !== currentNode.value,
+        );
         const neighbourNode = V.get(GraphNode.create(neighbour));
         if (!marked.has(neighbourNode)) {
           marked.add(neighbourNode);
@@ -154,20 +155,22 @@ function $BFS(value, callback) {
   }
 }
 
-function $DFS(vertex, callback) {
-  const { getVertexEdges } = privateData.get(this);
-  const marked = new Set([vertex]);
-  const vertexStack = Stack.create(marked);
-  while (vertexStack.size > 0) {
-    const currentVertex = vertexStack.pop();
-    getVertexEdges(currentVertex).forEach(({ vertexes }) => {
-      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentVertex);
-      if (!marked.has(neighbour)) {
-        marked.add(neighbour);
-        vertexStack.push(neighbour);
+function $DFS(value, callback) {
+  const { V, getVertexEdges } = privateData.get(this);
+  const node = V.get(GraphNode.create(value));
+  const marked = new ObjectSet([node]);
+  const nodeStack = Stack.create(marked);
+  while (nodeStack.size > 0) {
+    const currentNode = nodeStack.pop();
+    getVertexEdges(currentNode).forEach(({ vertexes }) => {
+      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentNode.value);
+      const neighbourNode = V.get(GraphNode.create(neighbour));
+      if (!marked.has(neighbourNode)) {
+        marked.add(neighbourNode);
+        nodeStack.push(neighbourNode);
       }
     });
-    if (callback(currentVertex)) {
+    if (callback(currentNode.value)) {
       break;
     }
   }
@@ -270,6 +273,11 @@ class Graph {
   BFS(value, callback) {
     const { BFS } = privateData.get(this);
     BFS(value, callback);
+  }
+
+  DFS(value, callback) {
+    const { DFS } = privateData.get(this);
+    DFS(value, callback);
   }
 
   UCC() {

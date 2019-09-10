@@ -131,6 +131,18 @@ describe('Graph tests', () => {
     expect(mockCallback).toHaveBeenNthCalledWith(3, 4, 1);
     expect(mockCallback).toHaveBeenNthCalledWith(4, 3, 2);
   });
+  it('DFS() callback should iterate vertexes', () => {
+    const mockCallback = jest.fn();
+    const graph = Graph.create([1, 2, 3, 4])
+      .addEdge(1, 2)
+      .addEdge(2, 3)
+      .addEdge(1, 4);
+    graph.DFS(1, mockCallback);
+    expect(mockCallback).toHaveBeenNthCalledWith(1, 1);
+    expect(mockCallback).toHaveBeenNthCalledWith(2, 4);
+    expect(mockCallback).toHaveBeenNthCalledWith(3, 2);
+    expect(mockCallback).toHaveBeenNthCalledWith(4, 3);
+  });
   it('UCC() should return array of graph components', () => {
     const graph = Graph.create([1, 2, 3, 4]);
     expect(graph.UCC()).toHaveLength(4);
