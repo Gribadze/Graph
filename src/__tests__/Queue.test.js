@@ -1,4 +1,4 @@
-const Queue = require('./Queue');
+const Queue = require('../Queue');
 
 describe('Queue tests', () => {
   it('Queue.create() should return new instance', () => {

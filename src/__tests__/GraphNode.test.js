@@ -1,4 +1,4 @@
-const GraphNode = require('./GraphNode');
+const GraphNode = require('../GraphNode');
 
 describe('GraphNode test', () => {
   it('should create new instance', () => {

@@ -158,6 +158,17 @@ class Graph {
     const { V } = privateData.get(this);
     const nodeContainer = Queue.create();
     const node = V.get(GraphNode.create(value));
+    $genericSearch({
+      nodeContainer,
+      getNextNode: () => nodeContainer.dequeue(),
+      addNode: (n) => nodeContainer.enqueue(n),
+    }).call(this, node, (currentNode) => callback(currentNode.value));
+  }
+
+  augmentedBFS(value, callback) {
+    const { V } = privateData.get(this);
+    const nodeContainer = Queue.create();
+    const node = V.get(GraphNode.create(value));
     let layerIndex = -1;
     const dist = new Map();
     $genericSearch({

@@ -1,4 +1,4 @@
-const Stack = require('./Stack');
+const Stack = require('../Stack');
 
 describe('Stack tests', () => {
   it('Stack.create() should return new instance', () => {

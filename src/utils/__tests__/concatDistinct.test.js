@@ -1,4 +1,4 @@
-const concatDistinct = require('./concatDistinct');
+const concatDistinct = require('../concatDistinct');
 
 describe('concatDistinct test', () => {
   it('should concat unique primitive values by default', () => {

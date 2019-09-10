@@ -1,4 +1,4 @@
-const ObjectSet = require('./ObjectSet');
+const ObjectSet = require('../ObjectSet');
 
 describe('ObjectSet tests', () => {
   it('should insert only unique object values', () => {

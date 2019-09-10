@@ -1,4 +1,4 @@
-const deepEqual = require('./deepEqual');
+const deepEqual = require('../deepEqual');
 
 describe('deepEqual test', () => {
   it('should compare primitive values', () => {
