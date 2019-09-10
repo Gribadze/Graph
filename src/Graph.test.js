@@ -7,8 +7,10 @@ describe('Graph tests', () => {
   it('Graph.create() should add vertexes from iterable object', () => {
     const graph1 = Graph.create([1]);
     const graph2 = Graph.create(new Set([2]).values());
+    const graph3 = Graph.create(new Set([3]));
     expect(graph1.vertexes).toContain(1);
     expect(graph2.vertexes).toContain(2);
+    expect(graph3.vertexes).toContain(3);
   });
   it('get vertexes() should return array of vertexes', () => {
     const graph = Graph.create();

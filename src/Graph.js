@@ -1,4 +1,5 @@
 const concatDistinct = require('./utils/concatDistinct');
+const GraphNode = require('./GraphNode');
 const ObjectSet = require('./ObjectSet');
 const Queue = require('./Queue');
 
@@ -9,43 +10,45 @@ const DefaultEdgeOptions = {
 
 const privateData = new WeakMap();
 
-function $createEdge(v1, v2, weight) {
+function $createEdge(fromNode, toNode, weight) {
   const { E } = privateData.get(this);
-  const edges = E.get(v1) || new Map();
-  E.set(v1, edges.set(v2, weight));
+  const edges = E.get(fromNode) || new Map();
+  E.set(fromNode, edges.set(toNode, weight));
 }
 
-function $vertexExists(...vertexes) {
+function $vertexExists(...values) {
   const { V } = privateData.get(this);
-  return vertexes.every((v) => V.has(v));
+  return values.every((v) => V.has(GraphNode.create(v)));
 }
 
-function $getVertexEdges(vertex) {
+function $getVertexEdges(node) {
   const { E } = privateData.get(this);
-  const vertexEdges = E.get(vertex);
+  const vertexEdges = E.get(node);
   if (!vertexEdges) {
     return [];
   }
-  return Array.from(vertexEdges.entries()).reduce((edgesInfo, [neighbour, weight]) => {
-    const neighbourEdges = E.get(neighbour);
+  return Array.from(vertexEdges.entries()).reduce((edgesInfo, [neighbourNode, weight]) => {
+    const neighbourEdges = E.get(neighbourNode);
+    // noinspection JSCheckFunctionSignatures
     return edgesInfo.concat({
-      directed: !neighbourEdges || !neighbourEdges.has(vertex),
+      directed: !neighbourEdges || !neighbourEdges.has(node),
       weight,
-      vertexes: new Set([vertex, neighbour]),
+      vertexes: new Set([node.value, neighbourNode.value]),
     });
   }, []);
 }
 
-function $concatEdgeInfos(all, vertex) {
+function $concatEdgeInfos(all, node) {
   const { getVertexEdges } = privateData.get(this);
-  return concatDistinct(all, getVertexEdges(vertex), (val1, val2) =>
-    all.some((v) => Array.from(val2.vertexes.values()).every((v2) => v.vertexes.has(v2))),
+  return concatDistinct(all, getVertexEdges(node), (val1, val2) =>
+    all.some(({ vertexes }) => Array.from(val2.vertexes.values()).every((v2) => vertexes.has(v2))),
   );
 }
 
-function $genericSearch(vertex, callback, marked = []) {
-  const { getVertexEdges } = privateData.get(this);
-  getVertexEdges(vertex).forEach((edgeInfo) => {
+function $genericSearch(value, callback, marked = []) {
+  const { V, getVertexEdges } = privateData.get(this);
+  const node = V.get(GraphNode.create(value));
+  getVertexEdges(node).forEach((edgeInfo) => {
     const [neighbour] = Array.from(edgeInfo.vertexes.values()).filter((v) => !marked.includes(v));
     if (neighbour) {
       marked.push(neighbour);
@@ -55,22 +58,24 @@ function $genericSearch(vertex, callback, marked = []) {
   });
 }
 
-function $BFS(vertex, callback) {
-  const { getVertexEdges } = privateData.get(this);
-  const marked = [vertex];
-  const dist = new Map([[vertex, 0]]);
-  const vertexQueue = Queue.create([vertex]);
-  while (vertexQueue.size > 0) {
-    const currentVertex = vertexQueue.dequeue();
-    getVertexEdges(currentVertex).forEach(({ vertexes }) => {
-      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentVertex);
-      if (!marked.includes(neighbour)) {
-        marked.push(neighbour);
-        dist.set(neighbour, dist.get(currentVertex) + 1);
-        vertexQueue.enqueue(neighbour);
+function $BFS(value, callback) {
+  const { V, getVertexEdges } = privateData.get(this);
+  const node = V.get(GraphNode.create(value));
+  const marked = new ObjectSet([node]);
+  const dist = new Map([[node, 0]]);
+  const nodeQueue = Queue.create([node]);
+  while (nodeQueue.size > 0) {
+    const currentNode = nodeQueue.dequeue();
+    getVertexEdges(currentNode).forEach(({ vertexes }) => {
+      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentNode.value);
+      const neighbourNode = V.get(GraphNode.create(neighbour));
+      if (!marked.has(neighbourNode)) {
+        marked.add(neighbourNode);
+        dist.set(neighbourNode, dist.get(currentNode) + 1);
+        nodeQueue.enqueue(neighbourNode);
       }
     });
-    if (callback(currentVertex, dist.get(currentVertex))) {
+    if (callback(currentNode.value, dist.get(currentNode))) {
       break;
     }
   }
@@ -82,9 +87,14 @@ class Graph {
   }
 
   constructor(from) {
+    let initialNodes = from || [];
+    if (!Array.isArray(initialNodes) && initialNodes[Symbol.iterator]) {
+      initialNodes = Array.from(initialNodes);
+    }
+    // noinspection JSCheckFunctionSignatures
     privateData.set(this, {
-      V: new ObjectSet(from),
-      E: new Map(),
+      V: new ObjectSet(initialNodes.map((value) => GraphNode.create(value))),
+      E: new WeakMap(),
       createEdge: $createEdge.bind(this),
       vertexExists: $vertexExists.bind(this),
       getVertexEdges: $getVertexEdges.bind(this),
@@ -95,56 +105,62 @@ class Graph {
   }
 
   get edges() {
-    const { concatEdgeInfos } = privateData.get(this);
-    return this.vertexes.reduce(concatEdgeInfos, []);
+    const { V, concatEdgeInfos } = privateData.get(this);
+    return Array.from(V.values()).reduce(concatEdgeInfos, []);
   }
 
   get vertexes() {
     const { V } = privateData.get(this);
-    return Array.from(V.values());
+    return Array.from(V.values()).map((v) => v.value);
   }
 
   addVertex(value) {
     const { V } = privateData.get(this);
-    V.add(value);
+    V.add(GraphNode.create(value));
     return this;
   }
 
   removeVertex(value) {
     const { V, E, getVertexEdges } = privateData.get(this);
-    getVertexEdges(value).forEach(({ vertexes }) => {
+    const node = V.get(GraphNode.create(value));
+    getVertexEdges(node).forEach(({ vertexes }) => {
       vertexes.forEach((v) => {
         if (v !== value) {
-          E.get(v).delete(value);
+          const neighbourNode = V.get(GraphNode.create(v));
+          E.get(neighbourNode).delete(node);
         }
       });
     });
-    V.delete(value);
-    E.delete(value);
+    V.delete(node);
+    E.delete(node);
     return this;
   }
 
   addEdge(v1, v2, options = DefaultEdgeOptions) {
-    const { vertexExists, createEdge } = privateData.get(this);
+    const { V, vertexExists, createEdge } = privateData.get(this);
     const { directed, weight } = options;
     if (!vertexExists(v1, v2)) {
       throw new Error('vertex does not exists');
     }
-    createEdge(v1, v2, weight);
+    const node1 = V.get(GraphNode.create(v1));
+    const node2 = V.get(GraphNode.create(v2));
+    createEdge(node1, node2, weight);
     if (!directed) {
-      createEdge(v2, v1, weight);
+      createEdge(node2, node1, weight);
     }
     return this;
   }
 
   removeEdge(v1, v2) {
-    const { E } = privateData.get(this);
-    const v1Edges = E.get(v1);
-    const v2Edges = E.get(v2);
-    if (v1Edges && v1Edges.has(v2)) {
-      v1Edges.delete(v2);
-      if (v2Edges && v2Edges.has(v1)) {
-        v2Edges.delete(v1);
+    const { V, E } = privateData.get(this);
+    const node1 = V.get(GraphNode.create(v1));
+    const node2 = V.get(GraphNode.create(v2));
+    const v1Edges = E.get(node1);
+    const v2Edges = E.get(node2);
+    if (v1Edges && v1Edges.has(node2)) {
+      v1Edges.delete(node2);
+      if (v2Edges && v2Edges.has(node1)) {
+        v2Edges.delete(node1);
       }
     }
     return this;
@@ -157,9 +173,9 @@ class Graph {
     return vertexes;
   }
 
-  BFS(vertex, callback) {
+  BFS(value, callback) {
     const { BFS } = privateData.get(this);
-    BFS(vertex, callback);
+    BFS(value, callback);
   }
 }
 
