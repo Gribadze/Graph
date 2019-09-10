@@ -1,4 +1,3 @@
-// eslint-disable-next-line max-classes-per-file
 const concatDistinct = require('./utils/concatDistinct');
 const GraphNode = require('./GraphNode');
 const ObjectSet = require('./ObjectSet');
@@ -8,36 +7,6 @@ const Stack = require('./Stack');
 const DefaultEdgeOptions = {
   directed: false,
   weight: 1,
-};
-
-const SearchAlgorithm = {
-  BFS: {
-    Container: {
-      type: Queue,
-      prototype: {
-        add: Queue.prototype.enqueue,
-        remove: Queue.prototype.dequeue,
-      },
-    },
-    toString() {
-      return 'BFS';
-    },
-  },
-  DFS: {
-    Container: Object.assign(() => {}, {
-      create: Stack.create,
-      prototype: Object.create({
-        add: Stack.prototype.push,
-        remove: Stack.prototype.pop,
-        isEmpty() {
-          return this.size === 0;
-        },
-      }),
-    }),
-    toString() {
-      return 'DFS';
-    },
-  },
 };
 
 const privateData = new WeakMap();
@@ -70,110 +39,33 @@ function $getVertexEdges(node) {
 }
 
 function $concatEdgeInfos(all, node) {
-  const { getVertexEdges } = privateData.get(this);
-  return concatDistinct(all, getVertexEdges(node), (val1, val2) =>
+  return concatDistinct(all, $getVertexEdges.call(this, node), (val1, val2) =>
     all.some(({ vertexes }) => Array.from(val2.vertexes.values()).every((v2) => vertexes.has(v2))),
   );
 }
 
-function $getAlgorithmContainer(searchAlgorithmName) {
-  const { Container } = SearchAlgorithm[searchAlgorithmName];
-  if (!Container) {
-    throw new Error(`${searchAlgorithmName} have no Container description`);
-  }
-  return class ContainerType extends Container.type {
-    static create(...args) {
-      return new ContainerType(...args);
-    }
-
-    // eslint-disable-next-line no-useless-constructor
-    constructor(...args) {
-      super(...args);
-    }
-
-    add(...args) {
-      return Container.prototype.add.apply(this, args);
-    }
-
-    remove(...args) {
-      return Container.prototype.remove.apply(this, args);
-    }
-
-    isEmpty() {
-      return this.size === 0;
-    }
-  };
-}
-
-// eslint-disable-next-line no-unused-vars
-function $genericSearch(searchAlgorithmName) {
-  return function genericSearch(value, callback) {
-    const { V, getVertexEdges } = privateData.get(this);
-    const node = V.get(GraphNode.create(value));
+function $genericSearch({ nodeContainer, getNextNode, addNode }) {
+  return function genericSearch(node, callback) {
+    const { V } = privateData.get(this);
     const marked = new ObjectSet([node]);
-    const Container = $getAlgorithmContainer(searchAlgorithmName);
-    const nodeContainer = Container.create(marked);
-    while (!nodeContainer.isEmpty()) {
-      const currentNode = nodeContainer.remove();
-      getVertexEdges(currentNode).forEach((edgeInfo) => {
+    addNode(node);
+    while (nodeContainer.size > 0) {
+      const currentNode = getNextNode();
+      $getVertexEdges.call(this, currentNode).forEach((edgeInfo) => {
         const [neighbour] = Array.from(edgeInfo.vertexes.values()).filter(
           (v) => v !== currentNode.value,
         );
         const neighbourNode = V.get(GraphNode.create(neighbour));
         if (!marked.has(neighbourNode)) {
           marked.add(neighbourNode);
-          nodeContainer.add(neighbourNode);
+          addNode(neighbourNode);
         }
       });
-      if (callback(currentNode.value)) {
+      if (callback(currentNode)) {
         break;
       }
     }
   };
-}
-
-function $BFS(value, callback) {
-  const { V, getVertexEdges } = privateData.get(this);
-  const node = V.get(GraphNode.create(value));
-  const marked = new ObjectSet([node]);
-  const dist = new Map([[node, 0]]);
-  const nodeQueue = Queue.create([node]);
-  while (nodeQueue.size > 0) {
-    const currentNode = nodeQueue.dequeue();
-    getVertexEdges(currentNode).forEach(({ vertexes }) => {
-      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentNode.value);
-      const neighbourNode = V.get(GraphNode.create(neighbour));
-      if (!marked.has(neighbourNode)) {
-        marked.add(neighbourNode);
-        dist.set(neighbourNode, dist.get(currentNode) + 1);
-        nodeQueue.enqueue(neighbourNode);
-      }
-    });
-    if (callback(currentNode.value, dist.get(currentNode))) {
-      break;
-    }
-  }
-}
-
-function $DFS(value, callback) {
-  const { V, getVertexEdges } = privateData.get(this);
-  const node = V.get(GraphNode.create(value));
-  const marked = new ObjectSet([node]);
-  const nodeStack = Stack.create(marked);
-  while (nodeStack.size > 0) {
-    const currentNode = nodeStack.pop();
-    getVertexEdges(currentNode).forEach(({ vertexes }) => {
-      const [neighbour] = Array.from(vertexes.values()).filter((v) => v !== currentNode.value);
-      const neighbourNode = V.get(GraphNode.create(neighbour));
-      if (!marked.has(neighbourNode)) {
-        marked.add(neighbourNode);
-        nodeStack.push(neighbourNode);
-      }
-    });
-    if (callback(currentNode.value)) {
-      break;
-    }
-  }
 }
 
 class Graph {
@@ -186,22 +78,15 @@ class Graph {
     if (!Array.isArray(initialNodes) && initialNodes[Symbol.iterator]) {
       initialNodes = Array.from(initialNodes);
     }
-    // noinspection JSCheckFunctionSignatures
     privateData.set(this, {
       V: new ObjectSet(initialNodes.map((value) => GraphNode.create(value))),
       E: new WeakMap(),
-      createEdge: $createEdge.bind(this),
-      vertexExists: $vertexExists.bind(this),
-      getVertexEdges: $getVertexEdges.bind(this),
-      concatEdgeInfos: $concatEdgeInfos.bind(this),
-      BFS: $BFS.bind(this),
-      DFS: $DFS.bind(this),
     });
   }
 
   get edges() {
-    const { V, concatEdgeInfos } = privateData.get(this);
-    return Array.from(V.values()).reduce(concatEdgeInfos, []);
+    const { V } = privateData.get(this);
+    return Array.from(V.values()).reduce($concatEdgeInfos.bind(this), []);
   }
 
   get vertexes() {
@@ -216,9 +101,9 @@ class Graph {
   }
 
   removeVertex(value) {
-    const { V, E, getVertexEdges } = privateData.get(this);
+    const { V, E } = privateData.get(this);
     const node = V.get(GraphNode.create(value));
-    getVertexEdges(node).forEach(({ vertexes }) => {
+    $getVertexEdges.call(this, node).forEach(({ vertexes }) => {
       vertexes.forEach((v) => {
         if (v !== value) {
           const neighbourNode = V.get(GraphNode.create(v));
@@ -232,16 +117,16 @@ class Graph {
   }
 
   addEdge(v1, v2, options = DefaultEdgeOptions) {
-    const { V, vertexExists, createEdge } = privateData.get(this);
+    const { V } = privateData.get(this);
     const { directed, weight } = options;
-    if (!vertexExists(v1, v2)) {
+    if (!$vertexExists.call(this, v1, v2)) {
       throw new Error('vertex does not exists');
     }
     const node1 = V.get(GraphNode.create(v1));
     const node2 = V.get(GraphNode.create(v2));
-    createEdge(node1, node2, weight);
+    $createEdge.call(this, node1, node2, weight);
     if (!directed) {
-      createEdge(node2, node1, weight);
+      $createEdge.call(this, node2, node1, weight);
     }
     return this;
   }
@@ -261,23 +146,43 @@ class Graph {
     return this;
   }
 
-  getComponent(vertex) {
-    const { BFS } = privateData.get(this);
-    const vertexes = [];
-    BFS(vertex, (reachableVertex) => {
-      vertexes.push(reachableVertex);
+  getComponent(value) {
+    const values = [];
+    this.BFS(value, (reachableVertex) => {
+      values.push(reachableVertex);
     });
-    return vertexes;
+    return values;
   }
 
   BFS(value, callback) {
-    const { BFS } = privateData.get(this);
-    BFS(value, callback);
+    const { V } = privateData.get(this);
+    const nodeContainer = Queue.create();
+    const node = V.get(GraphNode.create(value));
+    let layerIndex = -1;
+    const dist = new Map();
+    $genericSearch({
+      nodeContainer,
+      getNextNode: () => {
+        const n = nodeContainer.dequeue();
+        layerIndex = dist.get(n);
+        return n;
+      },
+      addNode: (n) => {
+        dist.set(n, layerIndex + 1);
+        nodeContainer.enqueue(n);
+      },
+    }).call(this, node, (currentNode) => callback(currentNode.value, dist.get(currentNode)));
   }
 
   DFS(value, callback) {
-    const { DFS } = privateData.get(this);
-    DFS(value, callback);
+    const { V } = privateData.get(this);
+    const nodeContainer = Stack.create();
+    const node = V.get(GraphNode.create(value));
+    $genericSearch({
+      nodeContainer,
+      getNextNode: () => nodeContainer.pop(),
+      addNode: (n) => nodeContainer.push(n),
+    }).call(this, node, (currentNode) => callback(currentNode.value));
   }
 
   UCC() {
