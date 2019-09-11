@@ -157,6 +157,35 @@ describe('Graph tests', () => {
     expect(mockCallback).toHaveBeenNthCalledWith(4, 5);
     expect(mockCallback).toHaveBeenNthCalledWith(5, 4);
   });
+  it('DFSTopo() callback should iterate vertexes', () => {
+    const mockCallback = jest.fn();
+    const graph = Graph.create([1, 2, 3, 4, 5])
+      .addEdge(1, 4)
+      .addEdge(2, 3)
+      .addEdge(3, 5)
+      .addEdge(1, 2);
+    graph.DFSTopo(1, mockCallback);
+    expect(mockCallback).toHaveBeenNthCalledWith(1, 4);
+    expect(mockCallback).toHaveBeenNthCalledWith(2, 5);
+    expect(mockCallback).toHaveBeenNthCalledWith(3, 3);
+    expect(mockCallback).toHaveBeenNthCalledWith(4, 2);
+    expect(mockCallback).toHaveBeenNthCalledWith(5, 1);
+  });
+  it('TopoSort() callback should receive topology value for each vertex', () => {
+    const mockCallback = jest.fn();
+    const graph = Graph.configure({ directed: true })
+      .build([1, 2, 3, 4, 5])
+      .addEdge(1, 4)
+      .addEdge(2, 3)
+      .addEdge(3, 5)
+      .addEdge(1, 2);
+    graph.TopoSort(1, mockCallback);
+    expect(mockCallback).toHaveBeenNthCalledWith(1, 4, 5);
+    expect(mockCallback).toHaveBeenNthCalledWith(2, 5, 4);
+    expect(mockCallback).toHaveBeenNthCalledWith(3, 3, 3);
+    expect(mockCallback).toHaveBeenNthCalledWith(4, 2, 2);
+    expect(mockCallback).toHaveBeenNthCalledWith(5, 1, 1);
+  });
   it('UCC() should return array of graph components', () => {
     const graph = Graph.create([1, 2, 3, 4]);
     expect(graph.UCC()).toHaveLength(4);

@@ -24,14 +24,23 @@ function $getVertexEdges(node) {
   if (!vertexEdges) {
     return [];
   }
-  return Array.from(vertexEdges.entries()).reduce((edgesInfo, [neighbourNode, weight]) => {
+  return Array.from(vertexEdges.entries()).map(([neighbourNode, weight]) => {
     const neighbourEdges = E.get(neighbourNode);
-    return edgesInfo.concat({
+    return {
       directed: !neighbourEdges || !neighbourEdges.has(node),
       weight,
       vertexes: new Set([node.value, neighbourNode.value]),
-    });
-  }, []);
+    };
+  });
+}
+
+function $getVertexNeighbours(node) {
+  const { E } = privateData.get(this);
+  const vertexEdges = E.get(node);
+  if (!vertexEdges) {
+    return [];
+  }
+  return Array.from(vertexEdges.keys());
 }
 
 function $concatEdgeInfos(all, node) {
@@ -211,6 +220,26 @@ class Graph {
       getNextNode: () => nodeContainer.pop(),
       addNode: (n) => nodeContainer.push(n),
     }).call(this, node, (currentNode) => callback(currentNode.value));
+  }
+
+  DFSTopo(value, callback, marked = new ObjectSet()) {
+    const { V } = privateData.get(this);
+    const node = V.get(GraphNode.create(value));
+    marked.add(node);
+    $getVertexNeighbours.call(this, node).forEach((neighbour) => {
+      if (!marked.has(neighbour)) {
+        this.DFSTopo(neighbour.value, callback, marked);
+      }
+    });
+    callback(node.value);
+  }
+
+  TopoSort(value, callback) {
+    let curLabel = this.vertexes.length;
+    this.DFSTopo(value, (currentValue) => {
+      callback(currentValue, curLabel);
+      curLabel -= 1;
+    });
   }
 
   UCC() {
