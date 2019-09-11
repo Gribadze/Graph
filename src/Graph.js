@@ -184,17 +184,23 @@ class Graph {
     const { V } = privateData.get(this);
     const nodeContainer = Queue.create();
     const node = V.get(GraphNode.create(value));
+    const result = [];
     $genericSearch({
       nodeContainer,
       getNextNode: () => nodeContainer.dequeue(),
       addNode: (n) => nodeContainer.enqueue(n),
-    }).call(this, node, (currentNode) => callback(currentNode.value));
+    }).call(this, node, (currentNode) => {
+      result.push(currentNode.value);
+      return callback && callback(currentNode.value);
+    });
+    return result;
   }
 
   augmentedBFS(value, callback) {
     const { V } = privateData.get(this);
     const nodeContainer = Queue.create();
     const node = V.get(GraphNode.create(value));
+    const result = [];
     let layerIndex = -1;
     const dist = new Map();
     $genericSearch({
@@ -208,38 +214,57 @@ class Graph {
         dist.set(n, layerIndex + 1);
         nodeContainer.enqueue(n);
       },
-    }).call(this, node, (currentNode) => callback(currentNode.value, dist.get(currentNode)));
+    }).call(this, node, (currentNode) => {
+      result.push([currentNode.value, dist.get(currentNode)]);
+      return callback && callback(currentNode.value, dist.get(currentNode));
+    });
+    return result;
   }
 
   DFS(value, callback) {
     const { V } = privateData.get(this);
     const nodeContainer = Stack.create();
     const node = V.get(GraphNode.create(value));
+    const result = [];
     $genericSearch({
       nodeContainer,
       getNextNode: () => nodeContainer.pop(),
       addNode: (n) => nodeContainer.push(n),
-    }).call(this, node, (currentNode) => callback(currentNode.value));
+    }).call(this, node, (currentNode) => {
+      result.push(currentNode.value);
+      return callback && callback(currentNode.value);
+    });
+    return result;
   }
 
   DFSTopo(value, callback, marked = new ObjectSet()) {
     const { V } = privateData.get(this);
     const node = V.get(GraphNode.create(value));
+    const result = [];
     marked.add(node);
     $getVertexNeighbours.call(this, node).forEach((neighbour) => {
       if (!marked.has(neighbour)) {
-        this.DFSTopo(neighbour.value, callback, marked);
+        result.push(...this.DFSTopo(neighbour.value, callback, marked));
       }
     });
-    callback(node.value);
+    result.push(node.value);
+    if (callback) {
+      callback(node.value);
+    }
+    return result;
   }
 
   TopoSort(value, callback) {
     let curLabel = this.vertexes.length;
+    const result = [];
     this.DFSTopo(value, (currentValue) => {
-      callback(currentValue, curLabel);
+      if (callback) {
+        callback(currentValue, curLabel);
+      }
+      result.push([currentValue, curLabel]);
       curLabel -= 1;
     });
+    return result;
   }
 
   UCC() {
