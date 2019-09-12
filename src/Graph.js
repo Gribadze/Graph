@@ -254,15 +254,26 @@ class Graph {
     return result;
   }
 
-  TopoSort(value, callback) {
+  TopoSort(callback) {
+    const { V } = privateData.get(this);
     let curLabel = this.vertexes.length;
+    const marked = new ObjectSet();
     const result = [];
-    this.DFSTopo(value, (currentValue) => {
-      if (callback) {
-        callback(currentValue, curLabel);
+    V.forEach((node) => {
+      if (marked.has(node)) {
+        return;
       }
-      result.push([currentValue, curLabel]);
-      curLabel -= 1;
+      this.DFSTopo(
+        node.value,
+        (currentValue) => {
+          if (callback) {
+            callback(currentValue, curLabel);
+          }
+          result.push([currentValue, curLabel]);
+          curLabel -= 1;
+        },
+        marked,
+      );
     });
     return result;
   }

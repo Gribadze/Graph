@@ -186,14 +186,15 @@ describe('Graph tests', () => {
       .addEdge(2, 3)
       .addEdge(3, 5)
       .addEdge(1, 2);
-    graph.TopoSort(1, mockCallback);
+    graph.TopoSort(mockCallback);
     expect(mockCallback).toHaveBeenNthCalledWith(1, 4, 5);
     expect(mockCallback).toHaveBeenNthCalledWith(2, 5, 4);
     expect(mockCallback).toHaveBeenNthCalledWith(3, 3, 3);
     expect(mockCallback).toHaveBeenNthCalledWith(4, 2, 2);
     expect(mockCallback).toHaveBeenNthCalledWith(5, 1, 1);
-    expect(() => graph.TopoSort(1)).not.toThrow();
-    expect(graph.TopoSort(1)).toHaveLength(5);
+    expect(() => graph.TopoSort()).not.toThrow();
+    expect(graph.TopoSort()).toHaveLength(5);
+    expect(graph.TopoSort()).toHaveLength(5);
   });
   it('UCC() should return array of graph components', () => {
     const graph = Graph.create([1, 2, 3, 4]);
